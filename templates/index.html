@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Home - TikTok DM Bot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Hero Section -->
+    <div class="col-12">
+        <div class="jumbotron bg-gradient text-white p-5 rounded mb-4"
+            style="background: linear-gradient(135deg, #ff0050, #ff4081);">
+            <div class="container text-center">
+                <h1 class="display-4 fw-bold">
+                    <i class="fab fa-tiktok me-3"></i>TikTok DM Bot
+                </h1>
+                <p class="lead">Automate your TikTok direct messages with intelligent responses</p>
+                <hr class="my-4" style="border-color: rgba(255,255,255,0.3);">
+                <p>Manage conversations, set auto-replies, and never miss a message again!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bot Control Panel -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-robot me-2"></i>Bot Control Panel
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3">
+                                {% if bot_active %}
+                                <span class="badge bg-success fs-6 px-3 py-2">
+                                    <i class="fas fa-play-circle me-1"></i>ACTIVE
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary fs-6 px-3 py-2">
+                                    <i class="fas fa-pause-circle me-1"></i>INACTIVE
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Bot Status</h6>
+                                <small class="text-muted">
+                                    {% if bot_active %}
+                                    Ready to respond to messages
+                                    {% else %}
+                                    Bot is currently offline
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ url_for('toggle_bot') }}">
+                            {% if bot_active %}
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-stop me-2"></i>Stop Bot
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-play me-2"></i>Start Bot
+                            </button>
+                            {% endif %}
+                        </form>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-center">
+                            <div class="mb-2">
+                                <i class="fas fa-comments fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="text-primary">{{ message_count }}</h4>
+                            <p class="text-muted">Total Messages</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-chart-bar me-2"></i>Dashboard
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('bulk_dm') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-users me-2"></i>Bulk DM
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('accounts') }}" class="btn btn-outline-warning w-100">
+                            <i class="fab fa-tiktok me-2"></i>TikTok Login
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-12">
+                        <button class="btn btn-outline-info w-100" data-bs-toggle="modal"
+                            data-bs-target="#sendMessageModal">
+                            <i class="fas fa-paper-plane me-2"></i>Send Individual Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Sidebar -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Bot Info
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Version</small>
+                    <div class="fw-bold">1.0.0</div>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Uptime</small>
+                    <div class="fw-bold text-success" id="uptime">2h 30m</div>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Response Time</small>
+                    <div class="fw-bold text-info">
+                        < 1s</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Auto Responses</small>
+                        <div class="fw-bold">{{ auto_responses|length }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-item d-flex align-items-center mb-2">
+                        <div class="activity-icon me-3">
+                            <i class="fas fa-circle text-success" style="font-size: 8px;"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Bot started</small>
+                            <div class="small text-muted">2 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item d-flex align-items-center mb-2">
+                        <div class="activity-icon me-3">
+                            <i class="fas fa-circle text-info" style="font-size: 8px;"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Message sent</small>
+                            <div class="small text-muted">5 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item d-flex align-items-center">
+                        <div class="activity-icon me-3">
+                            <i class="fas fa-circle text-warning" style="font-size: 8px;"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Settings updated</small>
+                            <div class="small text-muted">10 minutes ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div class="modal fade" id="sendMessageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ url_for('send_message') }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-paper-plane me-2"></i>Send Message
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="recipient" class="form-label">Recipient</label>
+                            <input type="text" class="form-control" id="recipient" name="recipient"
+                                placeholder="Enter username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message</label>
+                            <textarea class="form-control" id="message" name="message" rows="4"
+                                placeholder="Type your message..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        // Update bot status every 30 seconds
+        setInterval(function () {
+            fetch('/api/bot_status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('bot-status');
+                    if (data.active) {
+                        statusElement.innerHTML = '<i class="fas fa-circle me-1"></i>Online';
+                        statusElement.className = 'badge bg-success';
+                    } else {
+                        statusElement.innerHTML = '<i class="fas fa-circle me-1"></i>Offline';
+                        statusElement.className = 'badge bg-secondary';
+                    }
+                });
+        }, 30000);
+    </script>
+    {% endblock %}

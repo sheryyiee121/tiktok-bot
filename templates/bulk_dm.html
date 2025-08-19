@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk DM - TikTok DM Bot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-paper-plane me-2"></i>Bulk DM Sender
+    </h2>
+    <div>
+        <button class="btn btn-outline-primary" onclick="refreshJobs()">
+            <i class="fas fa-sync-alt me-2"></i>Refresh
+        </button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bulk DM Form -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Send Bulk Messages
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- File Upload Section -->
+                <div class="upload-section mb-4">
+                    <h6 class="text-primary">
+                        <i class="fas fa-file-upload me-2"></i>Upload Username File
+                    </h6>
+                    <form method="POST" action="{{ url_for('upload_usernames') }}" enctype="multipart/form-data"
+                        class="mb-3">
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <input type="file" class="form-control" name="file" accept=".csv,.txt,.xlsx" required>
+                                <small class="form-text text-muted">
+                                    Supported formats: CSV, TXT, Excel (.xlsx). First column should contain usernames.
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-upload me-2"></i>Upload File
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    {% if session.get('usernames') %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>{{ session.usernames|length }} usernames loaded</strong> from {{
+                        session.get('uploaded_filename', 'uploaded file') }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <!-- Bulk DM Form -->
+                <form method="POST" action="{{ url_for('start_bulk_dm') }}" id="bulkDmForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="manual_usernames" class="form-label">
+                                    Manual Usernames <small class="text-muted">(optional)</small>
+                                </label>
+                                <textarea class="form-control" id="manual_usernames" name="manual_usernames" rows="8"
+                                    placeholder="Enter usernames (one per line)&#10;username1&#10;username2&#10;username3"></textarea>
+                                <small class="form-text text-muted">
+                                    Add usernames manually or leave empty to use uploaded file only.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message <span
+                                        class="text-danger">*</span></label>
+                                <textarea class="form-control" id="message" name="message" rows="8"
+                                    placeholder="Type your message here..." required></textarea>
+                                <div class="d-flex justify-content-between">
+                                    <small class="form-text text-muted">Message that will be sent to all users</small>
+                                    <small class="text-muted" id="charCount">0 characters</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="delay" class="form-label">Delay Between Messages (seconds)</label>
+                                <input type="number" class="form-control" id="delay" name="delay" value="2" min="1"
+                                    max="60">
+                                <small class="form-text text-muted">Recommended: 2-5 seconds to avoid rate
+                                    limiting</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estimated Time</label>
+                                <div class="form-control-plaintext" id="estimatedTime">
+                                    <span class="text-muted">Upload usernames to see estimate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-success btn-lg px-5" id="startBulkBtn">
+                            <i class="fas fa-rocket me-2"></i>Start Bulk DM Campaign
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Templates -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightning-bolt me-2"></i>Quick Message Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" onclick="useTemplate('greeting')">
+                            <i class="fas fa-hand-wave me-1"></i>Greeting
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-info w-100" onclick="useTemplate('promotion')">
+                            <i class="fas fa-gift me-1"></i>Promotion
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-warning w-100" onclick="useTemplate('follow')">
+                            <i class="fas fa-heart me-1"></i>Follow Up
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Status & History -->
+    <div class="col-lg-4">
+        <!-- Active Jobs -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Active Jobs
+                </h5>
+            </div>
+            <div class="card-body" id="activeJobs">
+                <div class="text-center text-muted">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <p>No active jobs</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Job History -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Recent Jobs
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% if jobs %}
+                {% for job in jobs %}
+                <div class="job-item border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>{{ job.id }}</strong>
+                            {% if job.status == 'completed' %}
+                            <span class="badge bg-success ms-2">Completed</span>
+                            {% elif job.status == 'running' %}
+                            <span class="badge bg-primary ms-2">Running</span>
+                            {% elif job.status == 'cancelled' %}
+                            <span class="badge bg-warning ms-2">Cancelled</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ job.started_at }}</small>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted">Progress:</small>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" style="width: {{ job.progress }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ job.sent_count }}/{{ job.total_users }} sent</small>
+                    </div>
+
+                    <div class="message-preview">
+                        <small class="text-muted">Message:</small>
+                        <div class="small text-truncate">{{ job.message[:50] }}...</div>
+                    </div>
+
+                    {% if job.status == 'running' %}
+                    <div class="mt-2">
+                        <form method="POST" action="{{ url_for('cancel_bulk_job', job_id=job.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                onclick="return confirm('Are you sure you want to cancel this job?')">
+                                <i class="fas fa-stop me-1"></i>Cancel
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>No jobs yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-rocket me-2"></i>Bulk DM Campaign in Progress
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Progress</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="h5 text-success" id="sentCount">0</div>
+                        <small class="text-muted">Sent</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h5 text-danger" id="failedCount">0</div>
+                        <small class="text-muted">Failed</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h5 text-info" id="totalCount">0</div>
+                        <small class="text-muted">Total</small>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <small class="text-muted">Currently sending to:</small>
+                    <div class="fw-bold" id="currentUser">-</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideProgress()">
+                    Hide Progress
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentJobId = null;
+    let progressInterval = null;
+
+    // Message templates
+    const templates = {
+        greeting: "Hi! Thanks for following me. Hope you enjoy my content! 😊",
+        promotion: "🎉 Special offer just for you! Check out my latest video for an exclusive discount! Don't miss out! ⭐",
+        follow: "Hey! Just wanted to say thanks for the support. Would love to hear your thoughts on my recent content! 💭"
+    };
+
+    // Character counter for message
+    document.getElementById('message').addEventListener('input', function () {
+        const count = this.value.length;
+        document.getElementById('charCount').textContent = count + ' characters';
+
+        // Update estimated time
+        updateEstimatedTime();
+    });
+
+    // Update delay field
+    document.getElementById('delay').addEventListener('change', updateEstimatedTime);
+
+    function updateEstimatedTime() {
+        const userCount = {{ session.get('usernames', []) | length
+    }} + countManualUsernames();
+    const delay = parseInt(document.getElementById('delay').value) || 2;
+
+    if (userCount > 0) {
+        const totalSeconds = userCount * delay;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        let timeText = '';
+        if (minutes > 0) {
+            timeText = `${minutes}m ${seconds}s`;
+        } else {
+            timeText = `${seconds}s`;
+        }
+
+        document.getElementById('estimatedTime').innerHTML =
+            `<span class="text-info"><i class="fas fa-clock me-1"></i>${timeText} for ${userCount} users</span>`;
+    }
+    }
+
+    function countManualUsernames() {
+        const manual = document.getElementById('manual_usernames').value.trim();
+        return manual ? manual.split('\n').filter(u => u.trim()).length : 0;
+    }
+
+    function useTemplate(type) {
+        if (templates[type]) {
+            document.getElementById('message').value = templates[type];
+            document.getElementById('message').dispatchEvent(new Event('input'));
+        }
+    }
+
+    function showProgress(jobId) {
+        currentJobId = jobId;
+        const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+        modal.show();
+
+        // Start progress tracking
+        progressInterval = setInterval(() => trackProgress(jobId), 2000);
+    }
+
+    function hideProgress() {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    function trackProgress(jobId) {
+        fetch(`/api/bulk_job/${jobId}`)
+            .then(response => response.json())
+            .then(job => {
+                if (job.error) {
+                    hideProgress();
+                    return;
+                }
+
+                // Update progress UI
+                document.getElementById('progressPercent').textContent = job.progress + '%';
+                document.getElementById('progressBar').style.width = job.progress + '%';
+                document.getElementById('sentCount').textContent = job.sent_count;
+                document.getElementById('failedCount').textContent = job.failed_count;
+                document.getElementById('totalCount').textContent = job.total_users;
+                document.getElementById('currentUser').textContent = job.current_user || 'Preparing...';
+
+                // Check if job completed
+                if (job.status === 'completed' || job.status === 'cancelled') {
+                    hideProgress();
+                    refreshJobs();
+
+                    if (job.status === 'completed') {
+                        showNotification(`Bulk DM completed! Sent ${job.sent_count}/${job.total_users} messages.`, 'success');
+                    } else {
+                        showNotification('Bulk DM job was cancelled.', 'warning');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error tracking progress:', error);
+                hideProgress();
+            });
+    }
+
+    function refreshJobs() {
+        fetch('/api/bulk_jobs')
+            .then(response => response.json())
+            .then(jobs => {
+                updateActiveJobs(jobs);
+            })
+            .catch(error => {
+                console.error('Error refreshing jobs:', error);
+            });
+    }
+
+    function updateActiveJobs(jobs) {
+        const activeJobs = jobs.filter(job => job.status === 'running');
+        const container = document.getElementById('activeJobs');
+
+        if (activeJobs.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <p>No active jobs</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = activeJobs.map(job => `
+                <div class="active-job-item border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>${job.id}</strong>
+                        <span class="badge bg-primary">Running</span>
+                    </div>
+                    <div class="mb-2">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar" style="width: ${job.progress}%"></div>
+                        </div>
+                        <small class="text-muted">${job.sent_count}/${job.total_users} sent (${job.progress}%)</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info" onclick="showProgress('${job.id}')">
+                            <i class="fas fa-eye me-1"></i>View Progress
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="cancelJob('${job.id}')">
+                            <i class="fas fa-stop me-1"></i>Cancel
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    function cancelJob(jobId) {
+        if (confirm('Are you sure you want to cancel this job?')) {
+            fetch(`/cancel_bulk_job/${jobId}`, { method: 'POST' })
+                .then(() => {
+                    refreshJobs();
+                    showNotification('Job cancelled successfully.', 'warning');
+                });
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        // Use the global notification function from main.js
+        if (window.TikTokBot && window.TikTokBot.showNotification) {
+            window.TikTokBot.showNotification(message, type);
+        }
+    }
+
+    // Form submission handler
+    document.getElementById('bulkDmForm').addEventListener('submit', function () {
+        // Show progress modal for new job
+        setTimeout(() => {
+            // Get the latest job (newly created)
+            fetch('/api/bulk_jobs')
+                .then(response => response.json())
+                .then(jobs => {
+                    const runningJobs = jobs.filter(job => job.status === 'running');
+                    if (runningJobs.length > 0) {
+                        const latestJob = runningJobs[runningJobs.length - 1];
+                        showProgress(latestJob.id);
+                    }
+                });
+        }, 1000);
+    });
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateEstimatedTime();
+        refreshJobs();
+
+        // Refresh jobs every 10 seconds
+        setInterval(refreshJobs, 10000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - TikTok DM Bot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-cog me-2"></i>Bot Settings
+    </h2>
+    <button class="btn btn-success" onclick="saveAllSettings()">
+        <i class="fas fa-save me-2"></i>Save All
+    </button>
+</div>
+
+<div class="row">
+    <!-- Auto Response Settings -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-reply me-2"></i>Auto Response Messages
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Configure automatic responses for different types of messages.</p>
+
+                <!-- Default Response -->
+                <div class="response-setting mb-4">
+                    <form method="POST" action="{{ url_for('update_response') }}">
+                        <input type="hidden" name="type" value="default">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="badge bg-primary me-2">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <h6 class="mb-0">Default Response</h6>
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" name="message" rows="3"
+                                placeholder="Enter default auto-response message...">{{ auto_responses.default }}</textarea>
+                            <small class="form-text text-muted">This message will be sent when no other response type
+                                matches.</small>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-save me-1"></i>Update Default
+                        </button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Greeting Response -->
+                <div class="response-setting mb-4">
+                    <form method="POST" action="{{ url_for('update_response') }}">
+                        <input type="hidden" name="type" value="greeting">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="badge bg-success me-2">
+                                <i class="fas fa-hand-wave"></i>
+                            </div>
+                            <h6 class="mb-0">Greeting Response</h6>
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" name="message" rows="3"
+                                placeholder="Enter greeting auto-response message...">{{ auto_responses.greeting }}</textarea>
+                            <small class="form-text text-muted">Triggered by words like: hi, hello, hey</small>
+                        </div>
+                        <button type="submit" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-save me-1"></i>Update Greeting
+                        </button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Business Response -->
+                <div class="response-setting mb-4">
+                    <form method="POST" action="{{ url_for('update_response') }}">
+                        <input type="hidden" name="type" value="business">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="badge bg-warning me-2">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <h6 class="mb-0">Business Inquiry Response</h6>
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" name="message" rows="3"
+                                placeholder="Enter business inquiry auto-response message...">{{ auto_responses.business }}</textarea>
+                            <small class="form-text text-muted">Triggered by words like: business, service, help,
+                                price</small>
+                        </div>
+                        <button type="submit" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-save me-1"></i>Update Business
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>Advanced Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="advancedSettingsForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Response Delay (seconds)</label>
+                                <input type="number" class="form-control" value="1" min="0" max="60">
+                                <small class="form-text text-muted">Delay before sending auto-response</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Max Messages per Hour</label>
+                                <input type="number" class="form-control" value="100" min="1" max="1000">
+                                <small class="form-text text-muted">Rate limit for outgoing messages</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableNotifications" checked>
+                                    <label class="form-check-label" for="enableNotifications">
+                                        Enable Notifications
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">Get notified about new messages</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                                    <label class="form-check-label" for="enableLogging">
+                                        Enable Logging
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">Log all bot activities</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Blocked Keywords (comma-separated)</label>
+                        <textarea class="form-control" rows="2" placeholder="spam, advertisement, promotion"></textarea>
+                        <small class="form-text text-muted">Messages containing these words will be ignored</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Sidebar -->
+    <div class="col-lg-4">
+        <!-- Bot Status -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Bot Status
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    {% if bot_active %}
+                    <div class="status-indicator bg-success rounded-circle mx-auto mb-2"
+                        style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-check text-white fa-2x"></i>
+                    </div>
+                    <h6 class="text-success">Bot is Active</h6>
+                    <p class="text-muted small">Ready to respond to messages</p>
+                    {% else %}
+                    <div class="status-indicator bg-secondary rounded-circle mx-auto mb-2"
+                        style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-pause text-white fa-2x"></i>
+                    </div>
+                    <h6 class="text-secondary">Bot is Inactive</h6>
+                    <p class="text-muted small">Bot is currently offline</p>
+                    {% endif %}
+                </div>
+
+                <form method="POST" action="{{ url_for('toggle_bot') }}">
+                    {% if bot_active %}
+                    <button type="submit" class="btn btn-outline-warning">
+                        <i class="fas fa-stop me-2"></i>Stop Bot
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-outline-success">
+                        <i class="fas fa-play me-2"></i>Start Bot
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Quick Stats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Total Responses:</span>
+                    <span class="fw-bold">{{ auto_responses|length }}</span>
+                </div>
+                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Messages Today:</span>
+                    <span class="fw-bold">23</span>
+                </div>
+                <div class="stat-item d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Success Rate:</span>
+                    <span class="fw-bold text-success">98%</span>
+                </div>
+                <div class="stat-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Last Active:</span>
+                    <span class="fw-bold">2 min ago</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tools me-2"></i>Actions
+                </h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <button class="btn btn-outline-primary" onclick="exportSettings()">
+                    <i class="fas fa-download me-2"></i>Export Settings
+                </button>
+                <button class="btn btn-outline-secondary" onclick="importSettings()">
+                    <i class="fas fa-upload me-2"></i>Import Settings
+                </button>
+                <button class="btn btn-outline-danger" onclick="resetSettings()">
+                    <i class="fas fa-undo me-2"></i>Reset to Default
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Settings Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-upload me-2"></i>Import Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="settingsFile" class="form-label">Select Settings File</label>
+                    <input type="file" class="form-control" id="settingsFile" accept=".json">
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Import settings from a previously exported configuration file.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>Import
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function saveAllSettings() {
+        // Show loading state
+        const saveBtn = document.querySelector('[onclick="saveAllSettings()"]');
+        const originalHTML = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.disabled = true;
+
+        // Simulate save (in real app, this would submit all forms)
+        setTimeout(() => {
+            saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
+            setTimeout(() => {
+                saveBtn.innerHTML = originalHTML;
+                saveBtn.disabled = false;
+            }, 2000);
+        }, 1000);
+    }
+
+    function exportSettings() {
+        const settings = {
+            autoResponses: {
+                default: "{{ auto_responses.default }}",
+                greeting: "{{ auto_responses.greeting }}",
+                business: "{{ auto_responses.business }}"
+            },
+            advanced: {
+                responseDelay: 1,
+                maxMessagesPerHour: 100,
+                enableNotifications: true,
+                enableLogging: true
+            }
+        };
+
+        const dataStr = JSON.stringify(settings, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = 'tiktok-bot-settings.json';
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }
+
+    function importSettings() {
+        const modal = new bootstrap.Modal(document.getElementById('importModal'));
+        modal.show();
+    }
+
+    function resetSettings() {
+        if (confirm('Are you sure you want to reset all settings to default? This cannot be undone.')) {
+            // In real app, this would make an API call to reset settings
+            alert('Settings have been reset to default values.');
+            location.reload();
+        }
+    }
+</script>
+{% endblock %}

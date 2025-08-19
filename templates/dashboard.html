@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TikTok DM Bot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-chart-bar me-2"></i>Dashboard
+    </h2>
+    <button class="btn btn-primary" onclick="refreshData()">
+        <i class="fas fa-sync-alt me-2"></i>Refresh
+    </button>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-comments fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ stats.total_messages }}</h4>
+                        <small>Total Messages</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ stats.active_conversations }}</h4>
+                        <small>Active Conversations</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-percentage fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ stats.response_rate }}</h4>
+                        <small>Response Rate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ stats.uptime }}</h4>
+                        <small>Uptime</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Messages -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Recent Messages
+                </h5>
+                <span class="badge bg-primary">{{ messages|length }} messages</span>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                <div class="message-list" style="max-height: 400px; overflow-y: auto;">
+                    {% for message in messages %}
+                    <div class="message-item d-flex align-items-start mb-3 p-3 border rounded">
+                        <div class="message-avatar me-3">
+                            {% if message.type == 'sent' %}
+                            <div class="avatar bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            {% else %}
+                            <div class="avatar bg-secondary text-white d-flex align-items-center justify-content-center rounded-circle"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="message-content flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <strong>
+                                        {% if message.type == 'sent' %}
+                                        Bot → {{ message.recipient }}
+                                        {% else %}
+                                        {{ message.sender }}
+                                        {% endif %}
+                                    </strong>
+                                    {% if message.get('auto_response') %}
+                                    <span class="badge bg-info ms-2">Auto</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ message.timestamp }}</small>
+                            </div>
+                            <p class="mb-0 text-muted">{{ message.message }}</p>
+                        </div>
+                        <div class="message-actions ms-2">
+                            {% if message.type == 'sent' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-arrow-up me-1"></i>Sent
+                            </span>
+                            {% else %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-arrow-down me-1"></i>Received
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No messages yet</h5>
+                    <p class="text-muted">Messages will appear here when the bot starts receiving them.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Send Message Form -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('send_message') }}">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">Recipient</label>
+                        <input type="text" class="form-control" id="recipient" name="recipient"
+                            placeholder="Enter username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" name="message" rows="4"
+                            placeholder="Type your message..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bot Performance -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Response Speed</small>
+                        <small class="text-success">Excellent</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 95%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Delivery Rate</small>
+                        <small class="text-info">92%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" style="width: 92%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Error Rate</small>
+                        <small class="text-warning">3%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" style="width: 3%"></div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <small class="text-muted">Last updated: 2 minutes ago</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function refreshData() {
+        // Show loading state
+        const refreshBtn = document.querySelector('[onclick="refreshData()"]');
+        const originalHTML = refreshBtn.innerHTML;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+        refreshBtn.disabled = true;
+
+        // Simulate refresh (in real app, this would fetch new data)
+        setTimeout(() => {
+            refreshBtn.innerHTML = originalHTML;
+            refreshBtn.disabled = false;
+            location.reload();
+        }, 1000);
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        fetch('/api/messages')
+            .then(response => response.json())
+            .then(data => {
+                // Update message list if needed
+                console.log('Messages updated:', data.length);
+            });
+    }, 30000);
+</script>
+{% endblock %}

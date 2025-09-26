@@ -329,14 +329,182 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
+// Simulation state management
+window.SimulationState = {
+    isConnected: false,
+    isDMActive: false,
+    dmCounter: 0,
+    dmInterval: null,
+
+    setConnected: function (connected) {
+        this.isConnected = connected;
+        this.updateGlobalState();
+    },
+
+    setDMActive: function (active) {
+        this.isDMActive = active;
+        this.updateGlobalState();
+    },
+
+    incrementDMCounter: function () {
+        this.dmCounter++;
+        this.updateGlobalState();
+    },
+
+    updateGlobalState: function () {
+        // Update any global UI elements that need to reflect simulation state
+        const event = new CustomEvent('simulationStateChanged', {
+            detail: {
+                isConnected: this.isConnected,
+                isDMActive: this.isDMActive,
+                dmCounter: this.dmCounter
+            }
+        });
+        document.dispatchEvent(event);
+    }
+};
+
+// Listen for simulation state changes
+document.addEventListener('simulationStateChanged', function (event) {
+    const { isConnected, isDMActive, dmCounter } = event.detail;
+
+    // Update navbar indicators if they exist
+    const connectIndicator = document.querySelector('#navConnectIndicator');
+    if (connectIndicator) {
+        if (isConnected) {
+            connectIndicator.innerHTML = '<i class="fas fa-circle text-success me-1"></i>Connected';
+            connectIndicator.className = 'text-success small';
+        } else {
+            connectIndicator.innerHTML = '<i class="fas fa-circle text-secondary me-1"></i>Disconnected';
+            connectIndicator.className = 'text-secondary small';
+        }
+    }
+
+    // Update DM counters across pages
+    const dmCounters = document.querySelectorAll('.dm-counter-global');
+    dmCounters.forEach(counter => {
+        counter.textContent = dmCounter;
+    });
+
+    // Update connection status indicator on dashboard
+    const connectionStatusIndicator = document.getElementById('connectionStatusIndicator');
+    if (connectionStatusIndicator) {
+        if (isConnected) {
+            connectionStatusIndicator.innerHTML = '<i class="fas fa-circle text-success me-1"></i>Account connected (demo_user_2024)';
+        } else {
+            connectionStatusIndicator.innerHTML = '<i class="fas fa-circle text-secondary me-1"></i>No account connected';
+        }
+    }
+});
+
+// Enhanced notification system with better animations
+function showEnhancedNotification(message, type = 'info', duration = 3000, includeProgress = false) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; animation: slideInRight 0.3s ease;';
+
+    let progressBar = '';
+    if (includeProgress) {
+        progressBar = `<div class="progress mt-2" style="height: 3px;">
+                        <div class="progress-bar progress-bar-animated" style="width: 100%; transition: width ${duration}ms linear;"></div>
+                       </div>`;
+    }
+
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas ${getIconForType(type)} me-2"></i>
+            <div class="flex-grow-1">${message}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        ${progressBar}
+    `;
+
+    document.body.appendChild(notification);
+
+    // Animate progress bar if included
+    if (includeProgress) {
+        setTimeout(() => {
+            const progressBarEl = notification.querySelector('.progress-bar');
+            if (progressBarEl) {
+                progressBarEl.style.width = '0%';
+            }
+        }, 100);
+    }
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, duration);
+}
+
+function getIconForType(type) {
+    const icons = {
+        'success': 'fa-check-circle',
+        'danger': 'fa-exclamation-triangle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle',
+        'primary': 'fa-bell'
+    };
+    return icons[type] || icons['info'];
+}
+
+// Add CSS animations
+const animationCSS = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .simulation-glow {
+        animation: simulationGlow 2s infinite alternate;
+    }
+    
+    @keyframes simulationGlow {
+        from {
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+        to {
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+        }
+    }
+`;
+
+// Inject animation CSS
+const style = document.createElement('style');
+style.textContent = animationCSS;
+document.head.appendChild(style);
+
 // Export functions for global access
 window.TikTokBot = {
     refreshData,
     clearMessages,
     exportLogs,
     showNotification,
+    showEnhancedNotification,
     copyToClipboard,
     updateBotStatus,
     formatBytes,
-    debounce
+    debounce,
+    SimulationState: window.SimulationState
 };

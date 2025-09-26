@@ -151,6 +151,44 @@
     </div>
 
     <div class="col-lg-4">
+        <!-- DM Simulation Control -->
+        <div class="card shadow-sm mb-4" id="dashboardSimulationCard">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-rocket me-2"></i>Live DM Simulation
+                </h5>
+                <small id="connectionStatusIndicator" class="text-light">
+                    <i class="fas fa-circle text-secondary me-1"></i>No account connected
+                </small>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="h3 mb-1 text-info" id="dashboardDMCounter">0</div>
+                    <small class="text-muted">DMs Sent Today</small>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" id="startSimulationBtn" onclick="startDashboardSimulation()">
+                        <i class="fas fa-play me-2"></i>Start DM Campaign
+                    </button>
+                    <button class="btn btn-danger" id="stopSimulationBtn" onclick="stopDashboardSimulation()"
+                        style="display: none;">
+                        <i class="fas fa-stop me-2"></i>Stop Campaign
+                    </button>
+                </div>
+
+                <div class="mt-3" id="simulationStatus" style="display: none;">
+                    <div class="alert alert-success mb-2">
+                        <i class="fas fa-broadcast-tower me-2"></i>
+                        <small>Campaign active - sending 1 DM every 60 seconds</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success progress-bar-animated" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Send Message Form -->
         <div class="card shadow-sm mb-4">
             <div class="card-header">
@@ -250,5 +288,188 @@
                 console.log('Messages updated:', data.length);
             });
     }, 30000);
+
+    // Dashboard simulation variables
+    let dashboardDMInterval;
+    let dashboardDMCounter = 0;
+
+    function startDashboardSimulation() {
+        const startBtn = document.getElementById('startSimulationBtn');
+        const stopBtn = document.getElementById('stopSimulationBtn');
+        const statusDiv = document.getElementById('simulationStatus');
+        const counter = document.getElementById('dashboardDMCounter');
+
+        // Update UI
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        statusDiv.style.display = 'block';
+
+        // Reset counter
+        dashboardDMCounter = 0;
+        counter.textContent = dashboardDMCounter;
+
+        // Send first DM after 2 seconds
+        setTimeout(() => {
+            sendDashboardDM();
+        }, 2000);
+
+        // Set interval for subsequent DMs
+        dashboardDMInterval = setInterval(() => {
+            sendDashboardDM();
+        }, 60000); // 60 seconds
+
+        // Update global state
+        if (window.TikTokBot && window.TikTokBot.SimulationState) {
+            window.TikTokBot.SimulationState.setDMActive(true);
+            // If not already connected, set as connected for dashboard simulation
+            if (!window.TikTokBot.SimulationState.isConnected) {
+                window.TikTokBot.SimulationState.setConnected(true);
+            }
+        }
+
+        showDashboardNotification('DM Campaign started successfully! Account automatically connected.', 'success');
+    }
+
+    function sendDashboardDM() {
+        dashboardDMCounter++;
+        const counter = document.getElementById('dashboardDMCounter');
+        counter.textContent = dashboardDMCounter;
+
+        // Update global state
+        if (window.TikTokBot && window.TikTokBot.SimulationState) {
+            window.TikTokBot.SimulationState.incrementDMCounter();
+        }
+
+        // Add to message list if it exists
+        addSimulatedMessage();
+
+        // Show notification for first few DMs
+        if (dashboardDMCounter <= 5) {
+            showDashboardNotification(`DM #${dashboardDMCounter} sent successfully!`, 'success', 2000);
+        }
+
+        // Update statistics
+        updateSimulationStats();
+    }
+
+    function stopDashboardSimulation() {
+        const startBtn = document.getElementById('startSimulationBtn');
+        const stopBtn = document.getElementById('stopSimulationBtn');
+        const statusDiv = document.getElementById('simulationStatus');
+
+        if (dashboardDMInterval) {
+            clearInterval(dashboardDMInterval);
+            dashboardDMInterval = null;
+        }
+
+        // Update global state
+        if (window.TikTokBot && window.TikTokBot.SimulationState) {
+            window.TikTokBot.SimulationState.setDMActive(false);
+        }
+
+        // Update UI
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+        statusDiv.style.display = 'none';
+
+        showDashboardNotification('DM Campaign stopped', 'warning');
+    }
+
+    function addSimulatedMessage() {
+        const messageList = document.querySelector('.message-list');
+        if (!messageList) return;
+
+        // Remove "no messages" placeholder if it exists
+        const noMessages = document.querySelector('.text-center.py-5');
+        if (noMessages) {
+            noMessages.remove();
+        }
+
+        // Generate random recipient
+        const recipients = ['user123', 'tiktoker_pro', 'content_creator', 'dance_star', 'music_lover'];
+        const messages = [
+            'Hey! Check out our latest content!',
+            'Love your videos! Want to collaborate?',
+            'Thanks for the follow! 🎉',
+            'Your content is amazing! Keep it up!',
+            'Interested in our new product launch?'
+        ];
+
+        const recipient = recipients[Math.floor(Math.random() * recipients.length)];
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        const timestamp = new Date().toLocaleTimeString();
+
+        const messageItem = document.createElement('div');
+        messageItem.className = 'message-item d-flex align-items-start mb-3 p-3 border rounded';
+        messageItem.style.animation = 'fadeIn 0.5s ease-in';
+
+        messageItem.innerHTML = `
+            <div class="message-avatar me-3">
+                <div class="avatar bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
+                    style="width: 40px; height: 40px;">
+                    <i class="fas fa-robot"></i>
+                </div>
+            </div>
+            <div class="message-content flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                        <strong>Bot → ${recipient}</strong>
+                        <span class="badge bg-info ms-2">Auto</span>
+                    </div>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+                <p class="mb-0 text-muted">${message}</p>
+            </div>
+            <div class="message-actions ms-2">
+                <span class="badge bg-success">
+                    <i class="fas fa-arrow-up me-1"></i>Sent
+                </span>
+            </div>
+        `;
+
+        // Insert at the beginning of the message list
+        if (messageList.children.length > 0) {
+            messageList.insertBefore(messageItem, messageList.firstChild);
+        } else {
+            messageList.appendChild(messageItem);
+        }
+
+        // Limit to 10 messages to prevent overflow
+        if (messageList.children.length > 10) {
+            messageList.removeChild(messageList.lastChild);
+        }
+    }
+
+    function updateSimulationStats() {
+        // Update total messages count
+        const statsElements = document.querySelectorAll('[data-message-count], h4');
+        statsElements.forEach(element => {
+            if (element.textContent && !isNaN(element.textContent.trim())) {
+                element.textContent = dashboardDMCounter;
+            }
+        });
+    }
+
+    function showDashboardNotification(message, type = 'info', duration = 3000) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after duration
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 150);
+            }
+        }, duration);
+    }
 </script>
 {% endblock %}

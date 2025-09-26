@@ -73,6 +73,77 @@
                         <i class="fas fa-sign-in-alt me-2"></i>Login to TikTok
                     </button>
                 </form>
+
+                <!-- Simulation Connect Button -->
+                <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-muted mb-3"> Simulation</h6>
+                    <button type="button" class="btn btn-success w-100" id="simulateConnectBtn"
+                        onclick="simulateConnection()">
+                        <i class="fas fa-play me-2"></i>Simulate Connect Account
+                    </button>
+
+                    <!-- Connection Progress -->
+                    <div id="connectionProgress" class="mt-3" style="display: none;">
+                        <div class="text-center mb-2">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Connecting...</span>
+                            </div>
+                        </div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar progress-bar-animated progress-bar-striped" id="progressBar"
+                                role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted" id="progressText">Connecting to TikTok...</small>
+                        </div>
+                    </div>
+
+                    <!-- Success Message -->
+                    <div id="connectionSuccess" class="mt-3" style="display: none;">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Account Connected!</strong> Ready to start sending DMs.
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="startDMSimulation()">
+                            <i class="fas fa-paper-plane me-2"></i>Start Sending DMs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DM Sending Simulation -->
+        <div class="card shadow-sm mt-4" id="dmSimulationCard" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-paper-plane me-2"></i>DM Sending Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="mb-0 text-success" id="dmCounter">0</h4>
+                        <small class="text-muted">DMs Sent</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-success" id="dmStatus">
+                            <i class="fas fa-circle me-1"></i>Sending...
+                        </span>
+                    </div>
+                </div>
+
+                <div class="progress mb-3">
+                    <div class="progress-bar bg-success progress-bar-animated" style="width: 100%"></div>
+                </div>
+
+                <div id="dmLog" class="border rounded p-2"
+                    style="max-height: 200px; overflow-y: auto; background: #f8f9fa;">
+                    <!-- DM logs will appear here -->
+                </div>
+
+                <button class="btn btn-danger mt-3" onclick="stopDMSimulation()">
+                    <i class="fas fa-stop me-2"></i>Stop Simulation
+                </button>
             </div>
         </div>
 
@@ -334,5 +405,364 @@
 
     // Initial refresh
     document.addEventListener('DOMContentLoaded', refreshAccounts);
+
+    // Global variables for simulation
+    let dmInterval;
+    let dmCounter = 0;
+    let connectionTimeout;
+
+    function simulateConnection() {
+        const connectBtn = document.getElementById('simulateConnectBtn');
+        const progressDiv = document.getElementById('connectionProgress');
+        const successDiv = document.getElementById('connectionSuccess');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        // Hide button and success message, show progress
+        connectBtn.style.display = 'none';
+        successDiv.style.display = 'none';
+        progressDiv.style.display = 'block';
+
+        let progress = 0;
+        const progressMessages = [
+            'Connecting to TikTok...',
+            'Authenticating account...',
+            'Verifying credentials...',
+            'Setting up session...',
+            'Almost ready...'
+        ];
+
+        // Simulate 30-second connection process
+        const progressInterval = setInterval(() => {
+            progress += 100 / 30; // Increment for 30 seconds
+            progressBar.style.width = progress + '%';
+
+            // Update message every 6 seconds
+            const messageIndex = Math.floor((progress / 100) * progressMessages.length);
+            if (messageIndex < progressMessages.length) {
+                progressText.textContent = progressMessages[messageIndex];
+            }
+
+            if (progress >= 100) {
+                clearInterval(progressInterval);
+
+                // Show success after slight delay
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    successDiv.style.display = 'block';
+
+                    // Add notification and update global state
+                    if (window.TikTokBot && window.TikTokBot.SimulationState) {
+                        window.TikTokBot.SimulationState.setConnected(true);
+                    }
+
+                    // Update account statistics
+                    updateAccountStats(1, 1, 1);
+
+                    // Show connected account
+                    showConnectedAccount();
+
+                    showNotification('Account successfully connected to TikTok!', 'success');
+                }, 500);
+            }
+        }, 1000); // Update every second
+    }
+
+    function startDMSimulation() {
+        const dmCard = document.getElementById('dmSimulationCard');
+        const dmLog = document.getElementById('dmLog');
+        const counter = document.getElementById('dmCounter');
+
+        // Show DM simulation card
+        dmCard.style.display = 'block';
+        dmCard.scrollIntoView({ behavior: 'smooth' });
+
+        // Reset counter
+        dmCounter = 0;
+        counter.textContent = dmCounter;
+        dmLog.innerHTML = '<small class="text-muted">Starting DM campaign...</small>';
+
+        // Update global state
+        if (window.TikTokBot && window.TikTokBot.SimulationState) {
+            window.TikTokBot.SimulationState.setDMActive(true);
+        }
+
+        // Start sending DMs every 60 seconds
+        dmInterval = setInterval(() => {
+            dmCounter++;
+            counter.textContent = dmCounter;
+
+            // Update global state
+            if (window.TikTokBot && window.TikTokBot.SimulationState) {
+                window.TikTokBot.SimulationState.incrementDMCounter();
+            }
+
+            // Add log entry
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'small mb-1 text-success';
+            logEntry.innerHTML = `<i class="fas fa-check-circle me-1"></i>[${timestamp}] DM #${dmCounter} sent successfully`;
+
+            dmLog.appendChild(logEntry);
+            dmLog.scrollTop = dmLog.scrollHeight;
+
+            // Show notification for first few DMs
+            if (dmCounter <= 3) {
+                showNotification(`DM #${dmCounter} sent successfully!`, 'success', 2000);
+            }
+        }, 60000); // 60 seconds = 60000ms
+
+        // Send first DM immediately
+        setTimeout(() => {
+            dmCounter++;
+            counter.textContent = dmCounter;
+
+            // Update global state
+            if (window.TikTokBot && window.TikTokBot.SimulationState) {
+                window.TikTokBot.SimulationState.incrementDMCounter();
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'small mb-1 text-success';
+            logEntry.innerHTML = `<i class="fas fa-check-circle me-1"></i>[${timestamp}] DM #${dmCounter} sent successfully`;
+
+            dmLog.innerHTML = ''; // Clear initial message
+            dmLog.appendChild(logEntry);
+
+            showNotification('First DM sent successfully!', 'success');
+        }, 2000); // Wait 2 seconds before first DM
+    }
+
+    function stopDMSimulation() {
+        if (dmInterval) {
+            clearInterval(dmInterval);
+            dmInterval = null;
+        }
+
+        // Update global state
+        if (window.TikTokBot && window.TikTokBot.SimulationState) {
+            window.TikTokBot.SimulationState.setDMActive(false);
+        }
+
+        const dmStatus = document.getElementById('dmStatus');
+        dmStatus.innerHTML = '<i class="fas fa-stop-circle me-1"></i>Stopped';
+        dmStatus.className = 'badge bg-danger';
+
+        showNotification('DM simulation stopped', 'warning');
+    }
+
+    function updateAccountStats(totalAccounts, activeAccounts, currentAccounts) {
+        // Update the statistics cards
+        const totalElement = document.getElementById('totalAccounts');
+        const activeElement = document.getElementById('activeAccounts');
+        const currentElement = document.querySelector('.col-4:nth-child(3) .h4');
+
+        if (totalElement) totalElement.textContent = totalAccounts;
+        if (activeElement) activeElement.textContent = activeAccounts;
+        if (currentElement) currentElement.textContent = currentAccounts;
+
+        // Update the badge showing account count
+        const accountBadge = document.querySelector('.card-header .badge');
+        if (accountBadge) {
+            accountBadge.textContent = `${totalAccounts} account${totalAccounts !== 1 ? 's' : ''}`;
+        }
+    }
+
+    function showConnectedAccount() {
+        const accountList = document.querySelector('.account-list');
+        const noAccountsMessage = document.querySelector('.text-center.py-5');
+
+        // Remove "no accounts" message if it exists
+        if (noAccountsMessage) {
+            noAccountsMessage.remove();
+        }
+
+        // Create connected account entry
+        const connectedAccount = document.createElement('div');
+        connectedAccount.className = 'account-item border rounded p-3 mb-3 border-success bg-light';
+        connectedAccount.id = 'simulatedAccount';
+
+        const currentTime = new Date().toISOString().split('T')[0];
+
+        connectedAccount.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="account-info">
+                    <div class="d-flex align-items-center">
+                        <div class="account-avatar me-3">
+                            <div class="avatar bg-success text-white d-flex align-items-center justify-content-center rounded-circle simulation-glow"
+                                style="width: 40px; height: 40px;">
+                                <i class="fab fa-tiktok"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">demo_user_2024</h6>
+                            <span class="badge bg-success">
+                                <i class="fas fa-star me-1"></i>Active Account (Simulated)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="account-status">
+                    <span class="text-success">
+                        <i class="fas fa-circle" style="font-size: 8px;"></i> Online
+                    </span>
+                </div>
+            </div>
+
+            <div class="account-details mb-3">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Connected: ${currentTime} (via simulation)
+                </small>
+            </div>
+
+            <div class="account-actions d-flex gap-2">
+                <button class="btn btn-sm btn-outline-success" disabled>
+                    <i class="fas fa-star me-1"></i>Currently Active
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="disconnectSimulatedAccount()">
+                    <i class="fas fa-trash me-1"></i>Disconnect
+                </button>
+            </div>
+        `;
+
+        // Add to account list
+        if (accountList) {
+            // Insert at the beginning
+            if (accountList.children.length > 0) {
+                accountList.insertBefore(connectedAccount, accountList.firstChild);
+            } else {
+                accountList.appendChild(connectedAccount);
+            }
+        } else {
+            // Create account list container if it doesn't exist
+            const cardBody = document.querySelector('.col-lg-6 .card-body');
+            if (cardBody) {
+                const accountListDiv = document.createElement('div');
+                accountListDiv.className = 'account-list';
+                accountListDiv.style.maxHeight = '500px';
+                accountListDiv.style.overflowY = 'auto';
+                accountListDiv.appendChild(connectedAccount);
+                cardBody.appendChild(accountListDiv);
+            }
+        }
+
+        // Show active account info section
+        showActiveAccountInfo();
+    }
+
+    function showActiveAccountInfo() {
+        // Check if active account info already exists
+        let activeAccountSection = document.querySelector('.border-success.card');
+
+        if (!activeAccountSection) {
+            // Create the active account info section
+            const container = document.querySelector('.row');
+            const activeAccountDiv = document.createElement('div');
+            activeAccountDiv.className = 'row mt-4';
+            activeAccountDiv.innerHTML = `
+                <div class="col-12">
+                    <div class="card shadow-sm border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-star me-2"></i>Current Active Account: demo_user_2024
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Username:</strong> demo_user_2024</p>
+                                    <p class="mb-2">
+                                        <strong>Status:</strong>
+                                        <span class="text-success">
+                                            <i class="fas fa-circle me-1" style="font-size: 8px;"></i>Ready for DM sending (Simulated)
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Connected:</strong> ${new Date().toISOString().split('T')[0]}</p>
+                                    <p class="mb-2"><strong>Type:</strong> Demo Account (Frontend Simulation)</p>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                This simulated account is ready for DM campaigns and will be used for all bulk messaging.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Insert after the main content
+            const mainRow = document.querySelector('.row:last-of-type');
+            if (mainRow && mainRow.parentNode) {
+                mainRow.parentNode.appendChild(activeAccountDiv);
+            }
+        }
+    }
+
+    function disconnectSimulatedAccount() {
+        if (confirm('Are you sure you want to disconnect the simulated account?')) {
+            // Remove the simulated account
+            const simulatedAccount = document.getElementById('simulatedAccount');
+            if (simulatedAccount) {
+                simulatedAccount.remove();
+            }
+
+            // Remove active account info
+            const activeAccountSection = document.querySelector('.border-success.card');
+            if (activeAccountSection && activeAccountSection.parentNode && activeAccountSection.parentNode.parentNode) {
+                activeAccountSection.parentNode.parentNode.remove();
+            }
+
+            // Reset statistics
+            updateAccountStats(0, 0, 0);
+
+            // Update global state
+            if (window.TikTokBot && window.TikTokBot.SimulationState) {
+                window.TikTokBot.SimulationState.setConnected(false);
+            }
+
+            // Show no accounts message if needed
+            const accountList = document.querySelector('.account-list');
+            if (accountList && accountList.children.length === 0) {
+                const noAccountsDiv = document.createElement('div');
+                noAccountsDiv.className = 'text-center py-5';
+                noAccountsDiv.innerHTML = `
+                    <i class="fab fa-tiktok fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No TikTok Accounts</h5>
+                    <p class="text-muted">Add your first TikTok account to start sending DMs</p>
+                `;
+                accountList.parentNode.insertBefore(noAccountsDiv, accountList);
+                accountList.remove();
+            }
+
+            showNotification('Simulated account disconnected', 'info');
+        }
+    }
+
+    function showNotification(message, type = 'info', duration = 3000) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after duration
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 150);
+            }
+        }, duration);
+    }
 </script>
 {% endblock %}
